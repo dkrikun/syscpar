@@ -132,9 +132,6 @@ private:
             SC_ENTRY_FUNC fn,
             sc_process_host*    host );
 
-    virtual void prepare_for_simulation();
-
-
     bool eval_watchlist();
     bool eval_watchlist_curr_level();
 
@@ -163,7 +160,7 @@ inline void sc_cthread_process::set_next_exist(sc_cthread_handle next_p)
 inline void sc_cthread_process::wait_halt()
 {
     m_wait_cycle_n = 0;
-    suspend_me();
+    suspend();
     throw sc_halt();
 }
 

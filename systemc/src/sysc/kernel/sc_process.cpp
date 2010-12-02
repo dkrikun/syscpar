@@ -62,7 +62,6 @@
 #include "sysc/kernel/sc_name_gen.h"
 #include "sysc/kernel/sc_cthread_process.h"
 #include "sysc/kernel/sc_method_process.h"
-#include "sysc/kernel/sc_thread_process.h"
 #include "sysc/kernel/sc_sensitive.h"
 #include "sysc/kernel/sc_process_handle.h"
 

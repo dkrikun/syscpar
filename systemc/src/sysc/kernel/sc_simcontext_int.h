@@ -55,6 +55,9 @@
 #ifndef SC_SIMCONTEXT_INT_H
 #define SC_SIMCONTEXT_INT_H
 
+#include "sysc/kernel/dbgprint_config.hpp"
+#include "tbb/tbb_thread.h"
+
 #include "sysc/kernel/sc_simcontext.h"
 #include "sysc/kernel/sc_runnable.h"
 #include "sysc/kernel/sc_runnable_int.h"
@@ -71,8 +74,9 @@ inline
 void
 sc_simcontext::set_curr_proc( sc_process_b* process_h )
 {
-    m_curr_proc_info.process_handle = process_h;
-    m_curr_proc_info.kind           = process_h->proc_kind();
+    get_cpi()->process_handle = process_h;
+	dbgprint::with_tag<cpi>::println("^^ cpi of thread=",tbb::this_tbb_thread::get_id()," has been set to sc_process_b=",process_h);
+    get_cpi()->kind           = process_h->proc_kind();
 	m_current_writer = m_write_check ? process_h : (sc_object*)0;
 }
 
@@ -80,9 +84,10 @@ inline
 void
 sc_simcontext::reset_curr_proc()
 {
-    m_curr_proc_info.process_handle = 0;
-    m_curr_proc_info.kind           = SC_NO_PROC_;
-    m_current_writer                = 0;
+	get_cpi()->process_handle = 0;
+	dbgprint::with_tag<cpi>::println("^^ cpi of thread=",tbb::this_tbb_thread::get_id()," has been reset");
+	get_cpi()->kind           = SC_NO_PROC_;
+    m_current_writer          = 0;
     sc_process_b::m_last_created_process_p = 0; 
 }
 
@@ -114,31 +119,32 @@ sc_simcontext::push_runnable_thread_front( sc_thread_handle thread_h )
     m_runnable->push_front_thread( thread_h );
 }
 
+inline
+void
+sc_simcontext::update_curr_proc(sc_process_b* p)
+{
+	if( p == 0 )
+		reset_curr_proc();
+	else
+		set_curr_proc( p );
+}
 
 inline
 sc_method_handle
 sc_simcontext::pop_runnable_method()
 {
-    sc_method_handle method_h = m_runnable->pop_method();
-    if( method_h == 0 ) {
-	reset_curr_proc();
-	return 0;
-    }
-    set_curr_proc( (sc_process_b*)method_h );
-    return method_h;
+	sc_method_handle method_h = m_runnable->pop_method();
+	update_curr_proc( (sc_process_b*)method_h );
+	return method_h;
 }
 
 inline
 sc_thread_handle
 sc_simcontext::pop_runnable_thread()
 {
-    sc_thread_handle thread_h = m_runnable->pop_thread();
-    if( thread_h == 0 ) {
-	reset_curr_proc();
-	return 0;
-    }
-    set_curr_proc( (sc_process_b*)thread_h );
-    return thread_h;
+	sc_thread_handle thread_h = m_runnable->pop_thread();
+	update_curr_proc( (sc_process_b*)thread_h );
+	return thread_h;
 }
 
 inline
@@ -161,6 +167,9 @@ sc_simcontext::remove_runnable_thread( sc_thread_handle thread_h )
 
 extern void sc_defunct_process_function( sc_module* );
 
+inline bool is_in_par(){
+	return (gl_is_simcontext_alive && sc_get_curr_simcontext()->is_in_par());
+}
 
 } // namespace sc_core
 

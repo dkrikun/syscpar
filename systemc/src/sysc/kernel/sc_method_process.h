@@ -130,7 +130,7 @@ class sc_method_process : public sc_process_b {
     virtual const char* kind() const
         { return "sc_method_process"; }
 
-  protected:
+  public:
     virtual void kill_process();
     sc_method_handle next_exist();
     sc_method_handle next_runnable();

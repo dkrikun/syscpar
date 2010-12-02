@@ -134,7 +134,14 @@
 // event_occurred() method to hide how delta cycle comparisions are done within
 // sc_simcontext. Changed the boolean update_phase to an enum that shows all
 // the phases.
+
+
 #include "sysc/kernel/dbgprint_config.hpp"
+#include <boost/bind.hpp>
+#include <boost/unordered_set.hpp>
+#include "tbb/task_group.h"
+#include <boost/foreach.hpp>
+#include <boost/utility.hpp>
 
 #include "sysc/kernel/sc_cor_fiber.h"
 #include "sysc/kernel/sc_cor_pthread.h"
@@ -160,7 +167,7 @@
 #include "sysc/tracing/sc_trace.h"
 #include "sysc/utils/sc_mempool.h"
 #include "sysc/utils/sc_utils_ids.h"
-
+#include "sysc/utils/sc_lazy_init.h"
 
 namespace sc_core {
 
@@ -212,27 +219,7 @@ sc_process_table::~sc_process_table() {
 		delete method_now_p;
 	}
 
-	if ( m_thread_q || m_cthread_q )
-	{
-		::std::cout << ::std::endl 
-				<< "WATCH OUT!! In sc_process_table destructor. "
-				<< "Threads and cthreads are not actually getting deleted here. "
-				<< "Some memory may leak. Look at the comments here in "
-				<< "kernel/sc_simcontext.cpp for more details."
-				<< ::std::endl;
-	}
 
-	// don't delete threads and cthreads. If a (c)thread
-	// has died, then it has already been deleted. Only (c)threads created
-	// before simulation-start are in this table. Due to performance
-	// reasons, we don't look up the dying thread in the process table
-	// and remove it from there. simcontext::reset and ~simcontext invoke this
-	// destructor. At present none of these routines are ever invoked. 
-	// We can delete threads and cthreads here if a dying thread figured out
-	// it was created before simulation-start and took itself off the 
-	// process_table. 
-
-#if 0
 	sc_cthread_handle cthread_next_p; // Next cthread to delete.
 	sc_cthread_handle cthread_now_p; // Cthread now deleting.
 	sc_thread_handle thread_next_p; // Next thread to delete.
@@ -249,7 +236,6 @@ sc_process_table::~sc_process_table() {
 		thread_next_p = thread_now_p->next_exist();
 		delete thread_now_p;
 	}
-#endif // 0
 }
 
 inline sc_cthread_handle sc_process_table::cthread_q_head() {
@@ -416,8 +402,8 @@ void sc_simcontext::init() {
 	m_in_simulator_control = false;
 	m_start_of_simulation_called = false;
 	m_end_of_simulation_called = false;
+	m_in_parallel = false;
 }
-
 
 void sc_simcontext::clean() {
 	delete m_object_manager;
@@ -440,19 +426,16 @@ void sc_simcontext::clean() {
 	if (m_until_event != 0) {
 		delete m_until_event;
 	}
-	if( m_cor_pkg != 0 ) {
-		delete m_cor_pkg;
-	}
 }
 
-
-sc_simcontext::sc_simcontext()
-{
+sc_simcontext::sc_simcontext() {
+	gl_is_simcontext_alive = true;
 	init();
 }
 
 sc_simcontext::~sc_simcontext() {
 	clean();
+	gl_is_simcontext_alive = false;
 }
 
 inline void sc_simcontext::crunch(bool once) {
@@ -463,41 +446,43 @@ inline void sc_simcontext::crunch(bool once) {
 
 	while (true) {
 
+		dbgprint::with_tag<eval_phase>::println("---------------------------- ", "[",
+					sc_delta_count(), " ", sc_time_stamp(), "]",
+					" ----------------------------");
+
 		// EVALUATE PHASE
 
 		m_execution_phase = phase_evaluate;
+		bool serialize = getenv("SERIALIZE");
 		while (true) {
 
-
+			m_in_parallel = true;
+			dbgprint::with_tag<eval_phase>::println("\\\\\\\\\\\\\\\\entering par section\\\\\\\\\\\\\\\\");
+			tbb::task_group group;
 			// execute method processes
-
-			sc_method_handle method_h = pop_runnable_method();
-			while( method_h != 0 ) {
-				try {
-					method_h->semantics();
+			try {
+				sc_method_handle method_h = m_runnable->pop_method();
+				while (method_h != 0) {
+					group.run(boost::bind(
+							&sc_simcontext::update_curr_proc_and_semantics,
+							this, method_h, serialize));
+					method_h = m_runnable->pop_method();
 				}
-				catch( const sc_report& ex ) {
-					::std::cout << "\n" << ex.what() << ::std::endl;
-					m_error = true;
-					return;
+				sc_thread_handle thread_h = m_runnable->pop_thread();
+				while (thread_h != 0) {
+					group.run(boost::bind(
+							&sc_simcontext::update_curr_proc_and_semantics,
+							this, thread_h, serialize));
+					thread_h = m_runnable->pop_thread();
 				}
-
-				method_h = pop_runnable_method();
-			}
-
-			// execute (c)thread processes
-
-			sc_thread_handle thread_h = pop_runnable_thread();
-			while( thread_h != 0 ) {
-				if ( thread_h->ready_to_run() ) break;
-				thread_h = pop_runnable_thread();
-			}
-			if( thread_h != 0 ) {
-				m_cor_pkg->yield( thread_h->m_cor_p );
-			}
-			if( m_error ) {
+				group.wait();
+			} catch (const sc_report& ex) {
+				::std::cout << "\n" << ex.what() << ::std::endl;
+				m_error = true;
 				return;
 			}
+			m_in_parallel = false;
+			dbgprint::with_tag<eval_phase>::println("////////par section complete////////");
 
 		// check for call(s) to sc_stop
 		if( m_forced_stop ) {
@@ -625,9 +610,8 @@ void sc_simcontext::elaborate() {
 }
 
 void sc_simcontext::prepare_to_simulate() {
-	sc_cthread_handle cthread_p; // Pointer to cthread process accessing.
-	sc_method_handle  method_p;  // Pointer to method process accessing.
-	sc_thread_handle  thread_p;  // Pointer to thread process accessing.
+	sc_method_handle method_p; // Pointer to method process accessing.
+	sc_thread_handle thread_p; // Pointer to thread process accessing.
 
 	if (m_ready_to_simulate || sim_status() != SC_SIM_OK) {
 		return;
@@ -658,20 +642,6 @@ void sc_simcontext::prepare_to_simulate() {
 	if (m_forced_stop) {
 		do_sc_stop_action();
 		return;
-	}
-
-	// PREPARE ALL (C)THREAD PROCESSES FOR SIMULATION:
-
-	for ( thread_p = m_process_table->thread_q_head(); 
-			thread_p; thread_p = thread_p->next_exist() )
-	{
-		thread_p->prepare_for_simulation();
-	}
-
-	for ( cthread_p = m_process_table->cthread_q_head(); 
-			cthread_p; cthread_p = cthread_p->next_exist() )
-	{
-		cthread_p->prepare_for_simulation();
 	}
 
 	m_ready_to_simulate = true;
@@ -981,28 +951,6 @@ void sc_simcontext::add_trace_file(sc_trace_file* tf) {
 	m_something_to_trace = true;
 }
 
-
-sc_cor*
-sc_simcontext::next_cor()
-{
-	if( m_error ) {
-		return m_cor;
-	}
-
-	sc_thread_handle thread_h = pop_runnable_thread();
-	while( thread_h != 0 ) {
-		if ( thread_h->ready_to_run() ) break;
-		thread_h = pop_runnable_thread();
-	}
-
-	if( thread_h != 0 ) {
-		return thread_h->m_cor_p;
-	} else {
-		return m_cor;
-	}
-}
-
-
 const ::std::vector<sc_object*>&
 sc_simcontext::get_child_objects() const {
 	static bool warn_get_child_objects = true;
@@ -1095,7 +1043,8 @@ static sc_simcontext sc_default_global_context;
 sc_simcontext* sc_curr_simcontext = &sc_default_global_context;
 #else
 sc_simcontext* sc_curr_simcontext = 0;
-sc_simcontext* sc_default_global_context = 0;
+bool gl_is_simcontext_alive = false;
+lazy<sc_simcontext> sc_default_global_context;
 #endif
 #else
 // Not MT-safe!

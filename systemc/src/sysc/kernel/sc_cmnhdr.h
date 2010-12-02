@@ -121,6 +121,16 @@
 #define foreach         BOOST_FOREACH
 #define reverse_foreach BOOST_REVERSE_FOREACH
 
+namespace mpl=::boost::mpl;
+
+extern bool is_in_par();
+
+#define assert_par()\
+		assert(is_in_par());
+
+#define assert_nonpar()\
+		assert(!is_in_par());
+
 
 #endif
 

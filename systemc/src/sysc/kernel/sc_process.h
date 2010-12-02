@@ -336,7 +336,7 @@ class sc_process_b : public sc_object {
     inline void reference_increment();
 
   protected:
-    inline void semantics();
+    virtual inline void semantics();
 
     // debugging stuff:
 

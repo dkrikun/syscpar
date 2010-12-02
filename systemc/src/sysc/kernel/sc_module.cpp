@@ -356,7 +356,7 @@ sc_module::end_module()
 	/* TBD: Can check here to alert the user that end_module
                 was not called for a previous module. */
 	(void)sc_get_curr_simcontext()->hierarchy_pop();
-	sc_get_curr_simcontext()->reset_curr_proc(); 
+	//sc_get_curr_simcontext()->reset_curr_proc();
 	sensitive.reset();
 	sensitive_pos.reset();
 	sensitive_neg.reset();
@@ -466,27 +466,27 @@ sc_module::simulation_done()
     end_of_simulation();
 }
 
-void
-sc_module::set_stack_size( std::size_t size )
-{
-    sc_process_handle  proc_h(
-    	sc_is_running() ?
-	sc_get_current_process_handle() :
-	sc_get_last_created_process_handle()
-    );
-    sc_thread_handle thread_h;  // Current process as thread.
-
-
-    thread_h = (sc_thread_handle)proc_h;
-    if ( thread_h ) 
-    {
-	thread_h->set_stack_size( size );
-    }
-    else
-    {
-	SC_REPORT_WARNING( SC_ID_SET_STACK_SIZE_, 0 );
-    }
-}
+//void
+//sc_module::set_stack_size( std::size_t size )
+//{
+//    sc_process_handle  proc_h(
+//    	sc_is_running() ?
+//	sc_get_current_process_handle() :
+//	sc_get_last_created_process_handle()
+//    );
+//    sc_thread_handle thread_h;  // Current process as thread.
+//
+//
+//    thread_h = (sc_thread_handle)proc_h;
+//    if ( thread_h )
+//    {
+//	thread_h->set_stack_size( size );
+//    }
+//    else
+//    {
+//	SC_REPORT_WARNING( SC_ID_SET_STACK_SIZE_, 0 );
+//    }
+//}
 
 
 int

@@ -66,6 +66,8 @@
 
 namespace sc_core {
 
+extern bool is_in_par();
+
 // forward declarations
 class sc_event_timed;
 class sc_event_list;

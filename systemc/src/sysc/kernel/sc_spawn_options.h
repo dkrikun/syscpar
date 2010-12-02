@@ -58,6 +58,7 @@ class sc_port_base;
 class sc_interface;
 class sc_event_finder;
 class sc_process_b;
+class sc_thread_process;
 
 //=============================================================================
 // CLASS sc_spawn_options

@@ -366,8 +366,8 @@ protected:
     sc_sensitive_pos sensitive_pos;
     sc_sensitive_neg sensitive_neg;
 
-    // Function to set the stack size of the current (c)thread process.
-    void set_stack_size( std::size_t );
+//    // Function to set the stack size of the current (c)thread process.
+//    void set_stack_size( std::size_t );
 
     int append_port( sc_port_base* );
 

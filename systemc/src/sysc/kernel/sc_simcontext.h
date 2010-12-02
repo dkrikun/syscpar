@@ -102,6 +102,10 @@
 #include "sysc/kernel/sc_time.h"
 #include "sysc/utils/sc_hash.h"
 #include "sysc/utils/sc_pq.h"
+#include "sysc/utils/sc_lazy_init.h"
+
+#include "tbb/enumerable_thread_specific.h"
+#include "tbb/mutex.h"
 
 namespace sc_core {
 
@@ -266,16 +270,14 @@ public:
     bool get_error();
     void set_error();
 
-    sc_cor_pkg* cor_pkg()
-        { return m_cor_pkg; }
-    sc_cor* next_cor();
-
     const ::std::vector<sc_object*>& get_child_objects() const;
 
     void elaborate();
     void prepare_to_simulate();
     inline void initial_crunch( bool no_crunch );
-    const sc_time next_time(); 
+    const sc_time next_time();
+    bool is_in_par() const
+		{ return m_in_parallel; }
 
 private:
 
@@ -301,10 +303,25 @@ private:
     sc_method_handle pop_runnable_method();
     sc_thread_handle pop_runnable_thread();
 
+    void update_curr_proc(sc_process_b*);
+
     void remove_runnable_method( sc_method_handle );
     void remove_runnable_thread( sc_thread_handle );
 
     void do_sc_stop_action();
+
+    sc_curr_proc_info* get_cpi()
+		{ return &m_curr_proc_info.local(); }
+
+    tbb::mutex mu;	// temporary, for debugging
+    void update_curr_proc_and_semantics( sc_process_b* p, bool serialize = false ){
+    	tbb::mutex::scoped_lock lock;
+    	if(serialize)
+				lock.acquire(mu);	// released auto on scope exit
+    	update_curr_proc(p);
+    	p->semantics();
+    }
+
 
 private:
 
@@ -324,7 +341,10 @@ private:
     sc_name_gen*                m_name_gen;
 
     sc_process_table*           m_process_table;
-    sc_curr_proc_info           m_curr_proc_info;
+
+    typedef tbb::enumerable_thread_specific<sc_curr_proc_info> cpi_ets;
+    cpi_ets						m_curr_proc_info;
+
     sc_object*                  m_current_writer;
     bool                        m_write_check;
     int                         m_next_proc_id;
@@ -358,6 +378,8 @@ private:
     sc_cor_pkg*                 m_cor_pkg; // the simcontext's coroutine package
     sc_cor*                     m_cor;     // the simcontext's coroutine
 
+	bool						m_in_parallel;
+
 private:
 
     // disabled
@@ -371,16 +393,13 @@ private:
 
 #if 1
 extern sc_simcontext* sc_curr_simcontext;
-extern sc_simcontext* sc_default_global_context;
+extern lazy<sc_simcontext> sc_default_global_context;
+extern bool gl_is_simcontext_alive;
 
 inline sc_simcontext*
 sc_get_curr_simcontext()
 {
-    if( sc_curr_simcontext == 0 ) {
-        sc_default_global_context = new sc_simcontext;
-        sc_curr_simcontext = sc_default_global_context;
-    }
-    return sc_curr_simcontext;
+    return &sc_default_global_context.get();
 }
 #else
     extern sc_simcontext* sc_get_curr_simcontext();
@@ -451,7 +470,7 @@ inline
 sc_curr_proc_handle
 sc_simcontext::get_curr_proc_info()
 {
-    return &m_curr_proc_info;
+    return get_cpi();
 }
 
 
