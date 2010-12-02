@@ -59,6 +59,7 @@
 // Revision 1.3  2006/01/13 18:44:29  acg
 // Added $Log to record CVS changes into the source.
 //
+
 #include "sysc/kernel/sc_event.h"
 #include "sysc/kernel/sc_kernel_ids.h"
 #include "sysc/kernel/sc_process.h"
@@ -68,6 +69,12 @@
 
 namespace sc_core {
 
+mutex_t sc_event::mu_noti = mutex_t();
+mutex_t sc_event::mu_methods_static = mutex_t();
+mutex_t sc_event::mu_methods_dynamic = mutex_t();
+mutex_t sc_event::mu_threads_static = mutex_t();
+mutex_t sc_event::mu_threads_dynamic = mutex_t();
+
 // ----------------------------------------------------------------------------
 //  CLASS : sc_event
 //
@@ -75,8 +82,11 @@ namespace sc_core {
 // ----------------------------------------------------------------------------
 
 void
-sc_event::cancel()
+sc_event::cancel_internal(bool need_lock)
 {
+	lock_t lock;
+	if(need_lock)
+		lock.acquire(mu_noti);		// auto released at scope exit
     // cancel a delta or timed notification
     switch( m_notify_type ) {
     case DELTA: {
@@ -98,6 +108,10 @@ sc_event::cancel()
     }
 }
 
+void sc_event::cancel() {
+	cancel_internal(true);
+}
+
 
 void
 sc_event::notify()
@@ -106,13 +120,15 @@ sc_event::notify()
     if( m_simc->update_phase() ) {
         SC_REPORT_ERROR( SC_ID_IMMEDIATE_NOTIFICATION_, "" );
     }
-    cancel();
-    trigger();
+    {lock_t lock(mu_noti);
+	cancel_internal(false);
+	trigger();}
 }
 
 void
 sc_event::notify( const sc_time& t )
 {
+	lock_t lock(mu_noti);
     if( m_notify_type == DELTA ) {
         return;
     }
@@ -158,6 +174,7 @@ static void sc_warn_notify_delayed()
 void
 sc_event::notify_delayed()
 {
+	lock_t lock(mu_noti);
     sc_warn_notify_delayed();
     if( m_notify_type != NONE ) {
         SC_REPORT_ERROR( SC_ID_NOTIFY_DELAYED_, 0 );
@@ -170,6 +187,7 @@ sc_event::notify_delayed()
 void
 sc_event::notify_delayed( const sc_time& t )
 {
+	lock_t lock(mu_noti);
     sc_warn_notify_delayed();
     if( m_notify_type != NONE ) {
         SC_REPORT_ERROR( SC_ID_NOTIFY_DELAYED_, 0 );
@@ -191,13 +209,20 @@ sc_event::notify_delayed( const sc_time& t )
 void
 sc_event::reset()
 {
+	lock_t lock;
+	lock.acquire(mu_noti);
     m_notify_type = NONE;
     m_delta_event_index = -1;
     m_timed = 0;
+    lock.release();
     // clear the dynamic sensitive methods
+    lock.acquire(mu_methods_dynamic);
     m_methods_dynamic.resize(0);
+    lock.release();
     // clear the dynamic sensitive threads
+    lock.acquire(mu_threads_dynamic);
     m_threads_dynamic.resize(0);
+    lock.release();
 }
 
 
@@ -205,9 +230,11 @@ void
 sc_event::trigger()
 {
     int size;
+    lock_t lock;
 
     // trigger the static sensitive methods
 
+    lock.acquire(mu_methods_static);
     if( ( size = m_methods_static.size() ) != 0 ) {
         sc_method_handle* l_methods_static = &m_methods_static[0];
         int i = size - 1;
@@ -218,9 +245,11 @@ sc_event::trigger()
             }
         } while( -- i >= 0 );
     }
+    lock.release();
 
     // trigger the dynamic sensitive methods
 
+    lock.acquire(mu_methods_dynamic);
     if( ( size = m_methods_dynamic.size() ) != 0 ) {
         sc_method_handle* l_methods_dynamic = &m_methods_dynamic[0];
         int i = size - 1;
@@ -232,9 +261,11 @@ sc_event::trigger()
         } while( -- i >= 0 );
         m_methods_dynamic.resize(0);
     }
+    lock.release();
 
     // trigger the static sensitive threads
 
+    lock.acquire(mu_threads_static);
     if( ( size = m_threads_static.size() ) != 0 ) {
         sc_thread_handle* l_threads_static = &m_threads_static[0];
         int i = size - 1;
@@ -245,9 +276,11 @@ sc_event::trigger()
             }
         } while( -- i >= 0 );
     }
+    lock.release();
 
     // trigger the dynamic sensitive threads
 
+    lock.acquire(mu_threads_dynamic);
     if( ( size = m_threads_dynamic.size() ) != 0 ) {
         sc_thread_handle* l_threads_dynamic = &m_threads_dynamic[0];
         int i = size - 1;
@@ -259,7 +292,9 @@ sc_event::trigger()
         } while( -- i >= 0 );
         m_threads_dynamic.resize(0);
     }
+    lock.release();
 
+	assert(!(is_in_par() && lock.try_acquire(mu_noti)));
     m_notify_type = NONE;
     m_delta_event_index = -1;
     m_timed = 0;
@@ -269,6 +304,7 @@ sc_event::trigger()
 bool
 sc_event::remove_static( sc_method_handle method_h_ ) const
 {
+    lock_t lock(mu_methods_static);
     int size;
     if ( ( size = m_methods_static.size() ) != 0 ) {
       sc_method_handle* l_methods_static = &m_methods_static[0];
@@ -286,6 +322,7 @@ sc_event::remove_static( sc_method_handle method_h_ ) const
 bool
 sc_event::remove_static( sc_thread_handle thread_h_ ) const
 {
+    lock_t lock(mu_threads_static);
     int size;
     if ( ( size = m_threads_static.size() ) != 0 ) {
       sc_thread_handle* l_threads_static = &m_threads_static[0];
@@ -303,6 +340,7 @@ sc_event::remove_static( sc_thread_handle thread_h_ ) const
 bool
 sc_event::remove_dynamic( sc_method_handle method_h_ ) const
 {
+	lock_t lock(mu_methods_dynamic);
     int size;
     if ( ( size = m_methods_dynamic.size() ) != 0 ) {
       sc_method_handle* l_methods_dynamic = &m_methods_dynamic[0];
@@ -320,6 +358,7 @@ sc_event::remove_dynamic( sc_method_handle method_h_ ) const
 bool
 sc_event::remove_dynamic( sc_thread_handle thread_h_ ) const
 {
+	lock_t lock(mu_threads_dynamic);
     int size;
     if ( ( size= m_threads_dynamic.size() ) != 0 ) {
       sc_thread_handle* l_threads_dynamic = &m_threads_dynamic[0];

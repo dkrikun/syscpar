@@ -63,6 +63,8 @@
 #include "sysc/kernel/sc_simcontext.h"
 #include "sysc/datatypes/bit/sc_logic.h"
 #include <iostream>
+#include "sysc/kernel/dbgprint_config.hpp"
+using namespace dbgprint;
 
 namespace sc_core {
 
@@ -118,7 +120,7 @@ public:
     sc_event_and_list& operator & ( const sc_event& ) const;
 
 
-private:
+public:
 
     void add_static( sc_method_handle ) const;
     void add_static( sc_thread_handle ) const;
@@ -158,6 +160,16 @@ private:
     // disabled
     sc_event( const sc_event& );
     sc_event& operator = ( const sc_event& );
+
+private:
+    static mutex_t mu_noti;
+    static mutex_t mu_methods_static;
+    static mutex_t mu_methods_dynamic;
+    static mutex_t mu_threads_static;
+    static mutex_t mu_threads_dynamic;
+
+private:
+	void cancel_internal(bool);
 };
 
 extern sc_event sc_non_event; // Event that never happens.
@@ -245,10 +257,12 @@ void
 sc_event::notify_internal( const sc_time& t )
 {
     if( t == SC_ZERO_TIME ) {
+    	lock_t lock(mu_noti);
         // add this event to the delta events set
         m_delta_event_index = m_simc->add_delta_event( this );
         m_notify_type = DELTA;
     } else {
+    	lock_t lock(mu_noti);
         sc_event_timed* et =
 		new sc_event_timed( this, m_simc->time_stamp() + t );
         m_simc->add_timed_event( et );
@@ -281,6 +295,7 @@ inline
 void
 sc_event::add_static( sc_method_handle method_h ) const
 {
+	lock_t lock(mu_methods_static);
     m_methods_static.push_back( method_h );
 }
 
@@ -288,6 +303,7 @@ inline
 void
 sc_event::add_static( sc_thread_handle thread_h ) const
 {
+	lock_t lock(mu_threads_static);
     m_threads_static.push_back( thread_h );
 }
 
@@ -295,6 +311,7 @@ inline
 void
 sc_event::add_dynamic( sc_method_handle method_h ) const
 {
+	lock_t lock(mu_methods_dynamic);
     m_methods_dynamic.push_back( method_h );
 }
 
@@ -302,6 +319,7 @@ inline
 void
 sc_event::add_dynamic( sc_thread_handle thread_h ) const
 {
+	lock_t lock(mu_threads_dynamic);
     m_threads_dynamic.push_back( thread_h );
 }
 
