@@ -1,0 +1,24 @@
+
+project
+        : default-build debug
+;
+
+use-project /root : . ;
+using gcc ;
+
+#
+# tests
+#
+
+exe calc : [ glob tests/calc/*.cpp ] /root//systemc ;
+install install-calc : calc : <location>inst ;
+
+exe des : [ glob tests/des/*.cpp ] /root//systemc ;
+install install-des : des : <location>inst ;
+
+exe event3 : [ glob tests/event3/*.cpp ] /root//systemc ;
+install install-event3 : event3 : <location>inst ;
+
+exe event4 : [ glob tests/event4/*.cpp ] /root//systemc ;
+install install-event4 : event4 : <location>inst ;
+

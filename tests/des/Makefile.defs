@@ -1,0 +1,30 @@
+
+# 
+# Internal, do not touch unless you know what you're doing
+#
+
+TARGET_ARCH = linux
+LIBS   = -lsystemc $(EXTRA_LIBS)
+CFLAGS = $(CPPFLAGS) $(CXXFLAGS) $(EXTRA_FLAGS)
+
+.PHONY: clean
+
+define VER_template
+SYSTEMC_$(1) = $$(SYSCPAR_ROOT)/code/$(1)/systemc-2.2.0
+INCDIR_$(1) = -I. -I$$(SYSTEMC_$(1))/include
+LIBDIR_$(1) = -L$$(SYSTEMC_$(1))/lib-$$(TARGET_ARCH)
+
+OBJS_$(1): $$(SRCS) $$(HDRS)
+	$$(CXX) $$(CFLAGS) $$(INCDIR_$(1)) -c $$(SRCS)
+	touch OBJS_$(1)
+
+$(1): OBJS_$(1) $$(SYSTEMC_$(1))/lib-$$(TARGET_ARCH)/libsystemc.a
+	$$(CXX) $$(INCDIR_$(1)) -o $$(MODULE)_$(1) $$(OBJS) $$(LIBDIR_$(1)) $$(LIBS) 2>&1 | c++filt
+endef
+
+$(foreach ver, $(VERSIONS), $(eval $(call VER_template,$(ver))))
+
+all: $(VERSIONS)
+
+clean::
+	rm -f $(OBJS) $(MODULE)_* *~ OBJS_*

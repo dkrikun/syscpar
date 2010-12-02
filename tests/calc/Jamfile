@@ -1,0 +1,5 @@
+
+exe calc
+        : [ glob *.cpp ]
+          /root//systemc
+;

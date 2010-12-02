@@ -1,0 +1,5 @@
+
+exe event3
+        : [ glob *.cpp ]
+          /root//systemc
+;

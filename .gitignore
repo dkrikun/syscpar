@@ -1,0 +1,7 @@
+
+inst
+bin
+lib
+
+*.swp
+*.swo
