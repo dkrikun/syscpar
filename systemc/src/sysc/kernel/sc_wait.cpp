@@ -304,13 +304,14 @@ wait( const sc_time& t, sc_event_and_list& el, sc_simcontext* simc )
 void
 next_trigger( sc_simcontext* simc )
 {
-    sc_curr_proc_handle cpi = simc->get_curr_proc_info();
-    if( cpi->kind == SC_METHOD_PROC_ ) {
-	RCAST<sc_method_handle>( cpi->process_handle )->clear_trigger();
-    } else {
-	SC_REPORT_ERROR( SC_ID_NEXT_TRIGGER_NOT_ALLOWED_, "\n        "
-			 "in SC_THREADs and SC_CTHREADs use wait() instead" );
-    }
+	assert_par();
+	sc_curr_proc_handle cpi = simc->get_curr_proc_info();
+	if( cpi->kind == SC_METHOD_PROC_ ) {
+		RCAST<sc_method_handle>( cpi->process_handle )->get_log()->next_trigger();
+	} else {
+		SC_REPORT_ERROR( SC_ID_NEXT_TRIGGER_NOT_ALLOWED_, "\n        "
+				"in SC_THREADs and SC_CTHREADs use wait() instead" );
+	}
 }
 
 
@@ -319,9 +320,10 @@ next_trigger( sc_simcontext* simc )
 void
 next_trigger( const sc_event& e, sc_simcontext* simc )
 {
+	assert_par();
     sc_curr_proc_handle cpi = simc->get_curr_proc_info();
     if( cpi->kind == SC_METHOD_PROC_ ) {
-	RCAST<sc_method_handle>( cpi->process_handle )->next_trigger( e );
+	RCAST<sc_method_handle>( cpi->process_handle )->get_log()->next_trigger( e );
     } else {
 	SC_REPORT_ERROR( SC_ID_NEXT_TRIGGER_NOT_ALLOWED_, "\n        "
 			 "in SC_THREADs and SC_CTHREADs use wait() instead" );
@@ -331,9 +333,10 @@ next_trigger( const sc_event& e, sc_simcontext* simc )
 void
 next_trigger( sc_event_or_list& el, sc_simcontext* simc )
 {
+	assert_par();
     sc_curr_proc_handle cpi = simc->get_curr_proc_info();
     if( cpi->kind == SC_METHOD_PROC_ ) {
-	RCAST<sc_method_handle>( cpi->process_handle )->next_trigger( el );
+	RCAST<sc_method_handle>( cpi->process_handle )->get_log()->next_trigger( el );
     } else {
 	SC_REPORT_ERROR( SC_ID_NEXT_TRIGGER_NOT_ALLOWED_, "\n        "
 			 "in SC_THREADs and SC_CTHREADs use wait() instead" );
@@ -343,9 +346,10 @@ next_trigger( sc_event_or_list& el, sc_simcontext* simc )
 void
 next_trigger( sc_event_and_list& el, sc_simcontext* simc )
 {
+	assert_par();
     sc_curr_proc_handle cpi = simc->get_curr_proc_info();
     if( cpi->kind == SC_METHOD_PROC_ ) {
-	RCAST<sc_method_handle>( cpi->process_handle )->next_trigger( el );
+	RCAST<sc_method_handle>( cpi->process_handle )->get_log()->next_trigger( el );
     } else {
 	SC_REPORT_ERROR( SC_ID_NEXT_TRIGGER_NOT_ALLOWED_, "\n        "
 			 "in SC_THREADs and SC_CTHREADs use wait() instead" );
@@ -355,9 +359,10 @@ next_trigger( sc_event_and_list& el, sc_simcontext* simc )
 void
 next_trigger( const sc_time& t, sc_simcontext* simc )
 {
+	assert_par();
     sc_curr_proc_handle cpi = simc->get_curr_proc_info();
     if( cpi->kind == SC_METHOD_PROC_ ) {
-	RCAST<sc_method_handle>( cpi->process_handle )->next_trigger( t );
+	RCAST<sc_method_handle>( cpi->process_handle )->get_log()->next_trigger( t );
     } else {
 	SC_REPORT_ERROR( SC_ID_NEXT_TRIGGER_NOT_ALLOWED_, "\n        "
 			 "in SC_THREADs and SC_CTHREADs use wait() instead" );
@@ -367,9 +372,10 @@ next_trigger( const sc_time& t, sc_simcontext* simc )
 void
 next_trigger( const sc_time& t, const sc_event& e, sc_simcontext* simc )
 {
+	assert_par();
     sc_curr_proc_handle cpi = simc->get_curr_proc_info();
     if( cpi->kind == SC_METHOD_PROC_ ) {
-	RCAST<sc_method_handle>( cpi->process_handle )->next_trigger( t, e );
+	RCAST<sc_method_handle>( cpi->process_handle )->get_log()->next_trigger( t, e );
     } else {
 	SC_REPORT_ERROR( SC_ID_NEXT_TRIGGER_NOT_ALLOWED_, "\n        "
 			 "in SC_THREADs and SC_CTHREADs use wait() instead" );
@@ -379,9 +385,10 @@ next_trigger( const sc_time& t, const sc_event& e, sc_simcontext* simc )
 void
 next_trigger( const sc_time& t, sc_event_or_list& el, sc_simcontext* simc )
 {
+	assert_par();
     sc_curr_proc_handle cpi = simc->get_curr_proc_info();
     if( cpi->kind == SC_METHOD_PROC_ ) {
-	RCAST<sc_method_handle>( cpi->process_handle )->next_trigger( t, el );
+	RCAST<sc_method_handle>( cpi->process_handle )->get_log()->next_trigger( t, el );
     } else {
 	SC_REPORT_ERROR( SC_ID_NEXT_TRIGGER_NOT_ALLOWED_, "\n        "
 			 "in SC_THREADs and SC_CTHREADs use wait() instead" );
@@ -391,9 +398,10 @@ next_trigger( const sc_time& t, sc_event_or_list& el, sc_simcontext* simc )
 void
 next_trigger( const sc_time& t, sc_event_and_list& el, sc_simcontext* simc )
 {
+	assert_par();
     sc_curr_proc_handle cpi = simc->get_curr_proc_info();
     if( cpi->kind == SC_METHOD_PROC_ ) {
-	RCAST<sc_method_handle>( cpi->process_handle )->next_trigger( t, el );
+	RCAST<sc_method_handle>( cpi->process_handle )->get_log()->next_trigger( t, el );
     } else {
 	SC_REPORT_ERROR( SC_ID_NEXT_TRIGGER_NOT_ALLOWED_, "\n        "
 			 "in SC_THREADs and SC_CTHREADs use wait() instead" );

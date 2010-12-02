@@ -61,8 +61,11 @@
 
 #include "sysc/kernel/sc_kernel_ids.h"
 #include "sysc/kernel/sc_simcontext.h"
+#include "sysc/kernel/sc_process_handle.h"
 #include "sysc/datatypes/bit/sc_logic.h"
 #include <iostream>
+#include "sysc/kernel/dbgprint_config.hpp"
+using namespace dbgprint;
 
 namespace sc_core {
 
@@ -118,18 +121,16 @@ public:
     sc_event_and_list& operator & ( const sc_event& ) const;
 
 
-private:
+public:
 
     void add_static( sc_method_handle ) const;
     void add_static( sc_thread_handle ) const;
     void add_dynamic( sc_method_handle ) const;
     void add_dynamic( sc_thread_handle ) const;
 
-public:
     void notify_internal( const sc_time& );
     void notify_next_delta();
 
-private:
     bool remove_static( sc_method_handle ) const;
     bool remove_static( sc_thread_handle ) const;
     bool remove_dynamic( sc_method_handle ) const;
@@ -143,6 +144,7 @@ private:
 
     enum notify_t { NONE, DELTA, TIMED };
 
+protected:
     sc_simcontext*  m_simc;
     notify_t        m_notify_type;
     int             m_delta_event_index;
@@ -244,29 +246,39 @@ inline
 void
 sc_event::notify_internal( const sc_time& t )
 {
-    if( t == SC_ZERO_TIME ) {
-        // add this event to the delta events set
-        m_delta_event_index = m_simc->add_delta_event( this );
-        m_notify_type = DELTA;
-    } else {
-        sc_event_timed* et =
-		new sc_event_timed( this, m_simc->time_stamp() + t );
-        m_simc->add_timed_event( et );
-        m_timed = et;
-        m_notify_type = TIMED;
-    }
+	if(is_in_par())
+		sc_get_current_process_handle().get_log()->notify_internal(this,t);
+	else {
+		with_tag<tls_log>::println("(!) in sc_event::notify_internal, not in par. section");
+		if( t == SC_ZERO_TIME ) {
+			// add this event to the delta events set
+			m_delta_event_index = m_simc->add_delta_event( this );
+			m_notify_type = DELTA;
+		} else {
+			sc_event_timed* et =
+					new sc_event_timed( this, m_simc->time_stamp() + t );
+			m_simc->add_timed_event( et );
+			m_timed = et;
+			m_notify_type = TIMED;
+		}
+	}
 }
 
 inline
 void
 sc_event::notify_next_delta()
 {
-    if( m_notify_type != NONE ) {
-        SC_REPORT_ERROR( SC_ID_NOTIFY_DELAYED_, 0 );
-    }
-    // add this event to the delta events set
-    m_delta_event_index = m_simc->add_delta_event( this );
-    m_notify_type = DELTA;
+	if(is_in_par())
+		sc_get_current_process_handle().get_log()->notify_next_delta(this);
+	else {
+		with_tag<tls_log>::println("(!) in sc_event::notify_next_delta(), not in par. section");
+		if( m_notify_type != NONE ) {
+			SC_REPORT_ERROR( SC_ID_NOTIFY_DELAYED_, 0 );
+		}
+		// add this event to the delta events set
+		m_delta_event_index = m_simc->add_delta_event( this );
+		m_notify_type = DELTA;
+	}
 }
 
 inline

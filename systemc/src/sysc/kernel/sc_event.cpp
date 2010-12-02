@@ -77,71 +77,86 @@ namespace sc_core {
 void
 sc_event::cancel()
 {
-    // cancel a delta or timed notification
-    switch( m_notify_type ) {
-    case DELTA: {
-        // remove this event from the delta events set
-        m_simc->remove_delta_event( this );
-        m_notify_type = NONE;
-        break;
-    }
-    case TIMED: {
-        // remove this event from the timed events set
-        assert( m_timed != 0 );
-        m_timed->m_event = 0;
-        m_timed = 0;
-        m_notify_type = NONE;
-        break;
-    }
-    default:
-        ;
-    }
+	if(is_in_par())
+			sc_get_current_process_handle().get_log()->cancel(this);
+	else {
+		with_tag<tls_log>::println("(!) in sc_event::cancel, not in par. section");
+		// cancel a delta or timed notification
+		switch( m_notify_type ) {
+		case DELTA: {
+			// remove this event from the delta events set
+			m_simc->remove_delta_event( this );
+			m_notify_type = NONE;
+			break;
+		}
+		case TIMED: {
+			// remove this event from the timed events set
+			assert( m_timed != 0 );
+			m_timed->m_event = 0;
+			m_timed = 0;
+			m_notify_type = NONE;
+			break;
+		}
+		default:
+			;
+		}
+	}
 }
 
 
 void
 sc_event::notify()
 {
-    // immediate notification
-    if( m_simc->update_phase() ) {
-        SC_REPORT_ERROR( SC_ID_IMMEDIATE_NOTIFICATION_, "" );
-    }
-    cancel();
-    trigger();
+	// immediate notification
+	if(is_in_par())
+		sc_get_current_process_handle().get_log()->notify(this);
+	else {
+		with_tag<tls_log>::println("(!) in sc_event::notify(), not in par. section");
+		if( m_simc->update_phase() ) {
+			SC_REPORT_ERROR( SC_ID_IMMEDIATE_NOTIFICATION_, "" );
+		}
+		cancel();
+		trigger();
+	}
 }
 
 void
 sc_event::notify( const sc_time& t )
 {
-    if( m_notify_type == DELTA ) {
-        return;
-    }
-    if( t == SC_ZERO_TIME ) {
-        if( m_notify_type == TIMED ) {
-            // remove this event from the timed events set
-            assert( m_timed != 0 );
-            m_timed->m_event = 0;
-            m_timed = 0;
-        }
-        // add this event to the delta events set
-        m_delta_event_index = m_simc->add_delta_event( this );
-        m_notify_type = DELTA;
-        return;
-    }
-    if( m_notify_type == TIMED ) {
-        assert( m_timed != 0 );
-        if( m_timed->m_notify_time <= m_simc->time_stamp() + t ) {
-            return;
-        }
-        // remove this event from the timed events set
-        m_timed->m_event = 0;
-        m_timed = 0;
-    }
-    // add this event to the timed events set
-    sc_event_timed* et = new sc_event_timed( this, m_simc->time_stamp() + t );
-    m_simc->add_timed_event( et );
-    m_timed = et;
-    m_notify_type = TIMED;
+	if(is_in_par())
+		sc_get_current_process_handle().get_log()->notify(this,t);
+	else {
+		with_tag<tls_log>::println("(!) in sc_event::notify(sc_time), not in par. section");
+		if( m_notify_type == DELTA ) {
+			return;
+		}
+		if( t == SC_ZERO_TIME ) {
+			if( m_notify_type == TIMED ) {
+				// remove this event from the timed events set
+				assert( m_timed != 0 );
+				m_timed->m_event = 0;
+				m_timed = 0;
+			}
+			// add this event to the delta events set
+			m_delta_event_index = m_simc->add_delta_event( this );
+			m_notify_type = DELTA;
+			return;
+		}
+		if( m_notify_type == TIMED ) {
+			assert( m_timed != 0 );
+			if( m_timed->m_notify_time <= m_simc->time_stamp() + t ) {
+				return;
+			}
+			// remove this event from the timed events set
+			m_timed->m_event = 0;
+			m_timed = 0;
+		}
+		// add this event to the timed events set
+		sc_event_timed* et = new sc_event_timed( this, m_simc->time_stamp() + t );
+		m_simc->add_timed_event( et );
+		m_timed = et;
+		m_notify_type = TIMED;
+	}
 }
 
 static void sc_warn_notify_delayed()
@@ -158,34 +173,44 @@ static void sc_warn_notify_delayed()
 void
 sc_event::notify_delayed()
 {
-    sc_warn_notify_delayed();
-    if( m_notify_type != NONE ) {
-        SC_REPORT_ERROR( SC_ID_NOTIFY_DELAYED_, 0 );
-    }
-    // add this event to the delta events set
-    m_delta_event_index = m_simc->add_delta_event( this );
-    m_notify_type = DELTA;
+	if(is_in_par())
+		sc_get_current_process_handle().get_log()->notify_delayed(this);
+	else {
+		with_tag<tls_log>::println("(!) in sc_event::notify_delayed, not in par. section");
+		sc_warn_notify_delayed();
+		if( m_notify_type != NONE ) {
+			SC_REPORT_ERROR( SC_ID_NOTIFY_DELAYED_, 0 );
+		}
+		// add this event to the delta events set
+		m_delta_event_index = m_simc->add_delta_event( this );
+		m_notify_type = DELTA;
+	}
 }
 
 void
 sc_event::notify_delayed( const sc_time& t )
 {
-    sc_warn_notify_delayed();
-    if( m_notify_type != NONE ) {
-        SC_REPORT_ERROR( SC_ID_NOTIFY_DELAYED_, 0 );
-    }
-    if( t == SC_ZERO_TIME ) {
-        // add this event to the delta events set
-        m_delta_event_index = m_simc->add_delta_event( this );
-        m_notify_type = DELTA;
-    } else {
-        // add this event to the timed events set
-        sc_event_timed* et = new sc_event_timed( this,
-                                                 m_simc->time_stamp() + t );
-        m_simc->add_timed_event( et );
-        m_timed = et;
-        m_notify_type = TIMED;
-    }
+	if(is_in_par())
+		sc_get_current_process_handle().get_log()->notify_delayed(this);
+	else {
+		with_tag<tls_log>::println("(!) in sc_event::notify_delayed(sc_time), not in par. section");
+		sc_warn_notify_delayed();
+		if( m_notify_type != NONE ) {
+			SC_REPORT_ERROR( SC_ID_NOTIFY_DELAYED_, 0 );
+		}
+		if( t == SC_ZERO_TIME ) {
+			// add this event to the delta events set
+			m_delta_event_index = m_simc->add_delta_event( this );
+			m_notify_type = DELTA;
+		} else {
+			// add this event to the timed events set
+			sc_event_timed* et = new sc_event_timed( this,
+					m_simc->time_stamp() + t );
+			m_simc->add_timed_event( et );
+			m_timed = et;
+			m_notify_type = TIMED;
+		}
+	}
 }
 
 void

@@ -60,7 +60,7 @@
 
 using namespace tbb;
 
-#define PREFIX "[basic] "
+#define PREFIX "[v3] "
 
 int
 main( int argc, char* argv[] )

@@ -184,43 +184,43 @@ void sc_thread_process::remove_monitor(sc_process_monitor* monitor_p) {
 
 inline
 void sc_thread_process::wait(const sc_event& e) {
-	sc_method_process::next_trigger(e);
+	get_log()->next_trigger(e);
 	suspend();
 }
 
 inline
 void sc_thread_process::wait(sc_event_or_list& el) {
-	sc_method_process::next_trigger(el);
+	get_log()->next_trigger(el);
 	suspend();
 }
 
 inline
 void sc_thread_process::wait(sc_event_and_list& el) {
-	sc_method_process::next_trigger(el);
+	get_log()->next_trigger(el);
 	suspend();
 }
 
 inline
 void sc_thread_process::wait(const sc_time& t) {
-	sc_method_process::next_trigger(t);
+	get_log()->next_trigger(t);
 	suspend();
 }
 
 inline
 void sc_thread_process::wait(const sc_time& t, const sc_event& e) {
-	sc_method_process::next_trigger(t,e);
+	get_log()->next_trigger(t,e);
 	suspend();
 }
 
 inline
 void sc_thread_process::wait(const sc_time& t, sc_event_or_list& el) {
-	sc_method_process::next_trigger(t,el);
+	get_log()->next_trigger(t,el);
 	suspend();
 }
 
 inline
 void sc_thread_process::wait(const sc_time& t, sc_event_and_list& el) {
-	sc_method_process::next_trigger(t,el);
+	get_log()->next_trigger(t,el);
 	suspend();
 }
 

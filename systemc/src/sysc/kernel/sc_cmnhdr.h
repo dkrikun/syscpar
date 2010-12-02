@@ -131,6 +131,13 @@ extern bool is_in_par();
 #define assert_nonpar()\
 		assert(!is_in_par());
 
+#include <tbb/mutex.h>
+#include <tbb/spin_mutex.h>
+#include <tbb/queuing_mutex.h>
+
+typedef tbb::spin_mutex mutex_t;
+typedef mutex_t::scoped_lock lock_t;
+
 
 #endif
 

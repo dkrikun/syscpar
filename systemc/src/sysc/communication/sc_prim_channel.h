@@ -57,8 +57,13 @@
 #include "sysc/kernel/sc_object.h"
 #include "sysc/kernel/sc_wait.h"
 #include "sysc/kernel/sc_wait_cthread.h"
+#include "sysc/kernel/sc_process_handle.h"
+#include "sysc/kernel/dbgprint_config.hpp"
 
 namespace sc_core {
+
+extern sc_simcontext* sc_get_curr_simcontext();
+extern bool is_in_par();
 
 // ----------------------------------------------------------------------------
 //  CLASS : sc_prim_channel
@@ -354,9 +359,15 @@ inline
 void
 sc_prim_channel::request_update()
 {
-    if( ! m_update_next_p ) {
-	m_registry->request_update( *this );
-    }
+	if(is_in_par())
+		sc_get_current_process_handle().get_log()->request_update(this);
+	else
+	{
+		with_tag<tls_log>::println("(!) request_update, not in par");
+		if( ! m_update_next_p ) {
+			m_registry->request_update( *this );
+		}
+	}
 }
 
 

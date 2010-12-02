@@ -453,8 +453,11 @@ inline void sc_simcontext::crunch(bool once) {
 		// EVALUATE PHASE
 
 		m_execution_phase = phase_evaluate;
+		boost::unordered_set<sc_process_b*> current_runnable;
 		bool serialize = getenv("SERIALIZE");
 		while (true) {
+
+			current_runnable.clear();
 
 			m_in_parallel = true;
 			dbgprint::with_tag<eval_phase>::println("\\\\\\\\\\\\\\\\entering par section\\\\\\\\\\\\\\\\");
@@ -463,6 +466,7 @@ inline void sc_simcontext::crunch(bool once) {
 			try {
 				sc_method_handle method_h = m_runnable->pop_method();
 				while (method_h != 0) {
+					current_runnable.insert(method_h);
 					group.run(boost::bind(
 							&sc_simcontext::update_curr_proc_and_semantics,
 							this, method_h, serialize));
@@ -470,6 +474,7 @@ inline void sc_simcontext::crunch(bool once) {
 				}
 				sc_thread_handle thread_h = m_runnable->pop_thread();
 				while (thread_h != 0) {
+					current_runnable.insert(thread_h);
 					group.run(boost::bind(
 							&sc_simcontext::update_curr_proc_and_semantics,
 							this, thread_h, serialize));
@@ -483,6 +488,15 @@ inline void sc_simcontext::crunch(bool once) {
 			}
 			m_in_parallel = false;
 			dbgprint::with_tag<eval_phase>::println("////////par section complete////////");
+
+
+			dbgprint::with_tag<eval_phase>::println("proceeding to log execution, found ",current_runnable.size()," processes");
+			size_t j=0;
+			BOOST_FOREACH(boost::unordered_set<sc_process_b*>::value_type p,current_runnable){
+				dbgprint::with_tag<eval_phase>::println("executing log ",j++);
+				p->m_log.execute_and_reset();
+			}
+
 
 		// check for call(s) to sc_stop
 		if( m_forced_stop ) {

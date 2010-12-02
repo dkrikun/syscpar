@@ -80,6 +80,8 @@
 #include "sysc/kernel/sc_kernel_ids.h"
 #include "sysc/kernel/sc_reset.h"
 #include "sysc/communication/sc_export.h"
+#include "sysc/kernel/sc_log.h"
+
 
 namespace sc_core {
 
@@ -301,6 +303,7 @@ class sc_process_b : public sc_object {
     const ::std::vector<sc_object*>& get_child_objects() const;
     inline sc_curr_proc_kind proc_kind() const;
     sc_event& terminated_event();
+    sc_log* get_log() { return &m_log; }
 
   public:
     static inline sc_process_handle last_created_process_handle();
@@ -370,6 +373,9 @@ class sc_process_b : public sc_object {
     sc_event*                    m_timeout_event_p; // Timeout event.
     trigger_t                    m_trigger_type;    // Type of trigger using.
     bool                         m_zombie;          // True if terminated.
+    sc_log   					 m_log;
+
+
 
   protected:
     static sc_process_b* m_delete_next_p;          // Next process to delete.

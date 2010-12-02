@@ -278,7 +278,8 @@ sc_process_b::sc_process_b( const char* name_p, bool free_host,
     m_timed_out(false),
     m_timeout_event_p(new sc_event),
     m_trigger_type(STATIC),
-    m_zombie(false)
+    m_zombie(false),
+	m_log(this)
 {
 
     // THIS OBJECT INSTANCE IS NOW THE LAST CREATED PROCESS:

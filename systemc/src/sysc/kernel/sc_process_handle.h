@@ -103,6 +103,7 @@ class sc_process_handle {
     inline sc_event& terminated_event();
     inline bool terminated() const;
     inline bool valid() const;
+    sc_log* get_log(){ return m_target_p->get_log(); }
 
   protected:
     inline bool dont_initialize() const
