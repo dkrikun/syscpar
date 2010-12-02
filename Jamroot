@@ -10,15 +10,19 @@ using gcc ;
 # tests
 #
 
-exe calc : [ glob tests/calc/*.cpp ] /root//systemc ;
-install install-calc : calc : <location>inst ;
+path-constant systemc_lib : systemc/bin/gcc-4.4.3/debug/ ;
 
-exe des : [ glob tests/des/*.cpp ] /root//systemc ;
-install install-des : des : <location>inst ;
+exe calc        : [ glob tests/calc/*.cpp ]     /root//systemc ;
+exe des         : [ glob tests/des/*.cpp ]      /root//systemc ;
+exe event3      : [ glob tests/event3/*.cpp ]   /root//systemc ;
+exe event4      : [ glob tests/event4/*.cpp ]   /root//systemc ;
 
-exe event3 : [ glob tests/event3/*.cpp ] /root//systemc ;
-install install-event3 : event3 : <location>inst ;
+install install-tests
+        : calc
+          des
+          event3
+          event4
 
-exe event4 : [ glob tests/event4/*.cpp ] /root//systemc ;
-install install-event4 : event4 : <location>inst ;
-
+        : <dll-path>$(systemc_lib)
+          <location>inst
+;
