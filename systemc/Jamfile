@@ -3,22 +3,17 @@ project syscpar
         : source-location src
         : default-build debug
         : usage-requirements <include>src
+			     <include>/home/daniel/work/tools/dbgprint/include
 ;
+
 
 import notfile ;
 import common ;
 import os ;
-import regex ;
-
-local SYSCPAR_ROOT = [ os.environ SYSCPAR_ROOT ] ;
-local BOOST_ROOT = [ os.environ BOOST_ROOT ] ;
-local TBB_PREFIX = "$(SYSCPAR_ROOT)/tools/tbb30_20100310oss/build/linux_ia32_gcc_cc4.4.3_libc2.11.1_kernel2.6.32_" ;
-# local branch = [ regex.replace [ SHELL "git branch | grep '*'" ] [^a-zA-Z_0-9] "" ] ;
 
 # lib declarations
-lib tbb : : <file>$(TBB_PREFIX)release/libtbb_release.so <variant>release ;
-lib tbb : : <file>$(TBB_PREFIX)debug/libtbb_debug.so <variant>debug ;
-lib boost_context : : <file>$(BOOST_ROOT)/stage/lib/libboost_context.so ;
+lib tbb : : <file>/usr/local/lib/libtbb_release.so <variant>release ;
+lib tbb : : <file>/usr/local/lib/libtbb_debug.so <variant>debug ;
 
 # compile & link
 lib libsystemc.so
@@ -26,10 +21,11 @@ lib libsystemc.so
           [ glob *.o ]                                   # take object files in src (3 .o files of quickthreads,
                                                          # compiled in the original automake build system and brought here)
           tbb
-          boost_context
+	  /usr/local/lib/libboost_context.so 
 
-        : <include>src                                                          # take sysc header files
-          <include>$(SYSCPAR_ROOT)/tools/tbb30_20100310oss/include              # include tbb
+        : <include>src
+          <include>/home/daniel/work/tools/dbgprint/include
+
           <cxxflags>-Wno-parentheses
           <link>shared
           <hardcode-dll-paths>true

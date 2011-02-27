@@ -10,7 +10,7 @@ using gcc ;
 # tests
 #
 
-path-constant systemc_lib : systemc/bin/gcc-4.4.3/debug/ ;
+path-constant systemc_lib : systemc/bin/gcc-4.4.5/debug/ ;
 
 exe calc        : [ glob tests/calc/*.cpp ]     /root//systemc ;
 exe des         : [ glob tests/des/*.cpp ]      /root//systemc ;
