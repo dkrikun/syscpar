@@ -17,7 +17,7 @@
 #include "sysc/kernel/sc_except.h"
 #include "sysc/kernel/sc_reset.h"
 
-#include <boost/context.hpp>
+#include <boost/context/all.hpp>
 #include <boost/bind.hpp>
 #include "sysc/kernel/dbgprint_config.hpp"
 
@@ -101,8 +101,9 @@ protected:
 	void signal_monitors(int type = 0);
 
 protected:
-	boost::context	m_main;
-	boost::context	m_active;
+	boost::protected_stack  m_stack;
+	boost::context<>	m_main;
+	boost::context<>	m_active;
 	std::vector<sc_process_monitor*> m_monitor_q;
 	int m_wait_cycle_n;
 

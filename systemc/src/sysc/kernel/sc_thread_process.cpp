@@ -11,15 +11,17 @@ namespace sc_core {
 
 void wrapper(void* arg){ SCAST<sc_thread_process*>(arg)->wrapper_helper(); }
 
+#define DEFAULT_STACK_SIZE 65536
+
+
 sc_thread_process::sc_thread_process( const char* name_p, bool free_host, SC_ENTRY_FUNC method_p, sc_process_host* host_p,	const sc_spawn_options* opt_p )
 	  : sc_method_process(name_p,free_host,method_p,host_p,opt_p)
-	  , m_main(boost::context::current())
-	  , m_active(boost::context::create(
-					  wrapper
-					, m_main
-					, this
-					, ((opt_p && opt_p->m_stack_size)? opt_p->m_stack_size : boost::context::default_stacksize)
-				))
+	  , m_stack((opt_p && opt_p->m_stack_size)? opt_p->m_stack_size : DEFAULT_STACK_SIZE)
+	  , m_active(
+				  wrapper
+				, this
+				, boost::move(m_stack)
+			)
 	  , m_wait_cycle_n(0)
 {
 	m_process_kind = SC_THREAD_PROC_;
