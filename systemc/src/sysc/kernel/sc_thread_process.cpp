@@ -19,6 +19,7 @@ sc_thread_process::sc_thread_process( const char* name_p, bool free_host, SC_ENT
 	  , m_stack((opt_p && opt_p->m_stack_size)? opt_p->m_stack_size : DEFAULT_STACK_SIZE)
 	  , m_active(
 				  wrapper
+                                , m_main 
 				, this
 				, boost::move(m_stack)
 			)
