@@ -1,5 +1,0 @@
-
-exe des
-        : [ glob *.cpp ]
-          /root//systemc
-;

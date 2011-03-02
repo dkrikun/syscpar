@@ -1,5 +1,0 @@
-
-exe event4
-        : [ glob *.cpp ]
-          /root//systemc
-;
