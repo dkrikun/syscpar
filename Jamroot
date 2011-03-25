@@ -15,7 +15,7 @@ path-constant systemc_lib : systemc/bin/gcc-4.4.5/debug/ ;
 exe calc        : [ glob tests/calc/*.cpp ]     /root//systemc ;
 exe des         : [ glob tests/des/*.cpp ]      /root//systemc ;
 exe event3      : [ glob tests/event3/*.cpp ]   /root//systemc ;
-exe event4      : [ glob tests/event4/*.cpp ]   /root//systemc ;
+exe event4      : [ glob tests/event4/*.cpp ]   /root//systemc /usr/local/lib/libprofiler.so ;
 
 install install-tests
         : calc

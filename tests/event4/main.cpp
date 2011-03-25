@@ -12,6 +12,7 @@
 #include <boost/function.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/tokenizer.hpp>
+#include <google/profiler.h>
 
 #define print(msg)\
         std::cout << msg << std::endl;
@@ -163,7 +164,9 @@ int sc_main(int argc, char** argv){
         }
 
         tbb::tick_count t0 = tbb::tick_count::now();
+        ProfilerStart("event4.prof");
         sc_start(sim_time,SC_MS);
+        ProfilerStop();
         tbb::tick_count t1 = tbb::tick_count::now();
         if(!is_silent) print(std::endl);
         if(getenv("REPORT")) print((t1-t0).seconds());
