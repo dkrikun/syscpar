@@ -22,7 +22,7 @@ install install-tests
           des
           event3
           event4
-
-        : <dll-path>$(systemc_lib)
+        : <include>/opt/intel/tbb/include
+          <dll-path>$(systemc_lib)
           <location>inst
 ;

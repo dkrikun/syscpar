@@ -3,6 +3,7 @@ project syscpar
         : source-location src
         : default-build debug
         : usage-requirements <include>src
+                             <include>/opt/intel/tbb/include
 			     <include>/home/daniel/work/tools/dbgprint/include
 ;
 
@@ -12,8 +13,9 @@ import common ;
 import os ;
 
 # lib declarations
-lib tbb : : <file>/usr/local/lib/libtbb_release.so <variant>release ;
-lib tbb : : <file>/usr/local/lib/libtbb_debug.so <variant>debug ;
+
+lib tbb : : <file>/opt/intel/tbb/lib/ia32/cc4.1.0_libc2.4_kernel2.6.16.21/libtbb.so.2        <variant>release ;
+lib tbb : : <file>/opt/intel/tbb/lib/ia32/cc4.1.0_libc2.4_kernel2.6.16.21/libtbb_debug.so.2  <variant>debug ;
 
 # compile & link
 lib libsystemc.so
@@ -21,9 +23,10 @@ lib libsystemc.so
           [ glob *.o ]                                   # take object files in src (3 .o files of quickthreads,
                                                          # compiled in the original automake build system and brought here)
           tbb
-	  /usr/local/lib/libboost_context.so 
+	  /home/daniel/work/tools/boost_1_46_0/stage/lib/libboost_context.so 
 
         : <include>src
+          <include>/opt/intel/tbb/include
           <include>/home/daniel/work/tools/dbgprint/include
 
           <cxxflags>-Wno-parentheses

@@ -45,9 +45,9 @@
 #include "sysc/kernel/sc_cmnhdr.h"
 #include "sysc/kernel/sc_externs.h"
 
-#include "tbb/tick_count.h"
-#include "tbb/tbb_thread.h"
-#include "tbb/task_scheduler_init.h"
+#include <tbb/tick_count.h>
+#include <tbb/tbb_thread.h>
+#include <tbb/task_scheduler_init.h>
 #include "sysc/kernel/dbgprint_config.hpp"
 
 #include <stdlib.h>
