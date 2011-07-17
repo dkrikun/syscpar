@@ -28,6 +28,8 @@ lib libsystemc.so
         : <include>src
           <include>/opt/intel/tbb/include
           <include>/home/daniel/work/tools/dbgprint/include
+          <include>/home/daniel/work/tools/boost_1_46_0
+
 
           <cxxflags>-Wno-parentheses
           <link>shared
